@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from routes import base ,data
 from pymongo import AsyncMongoClient
-from helpers.config import get_settings
+from helpers.config import get_setting
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup_db_client():
-    settings = get_settings()
+    settings = get_setting()
     app.mongodb_conn = AsyncMongoClient(settings.MONGODB_URL)
     app.db_client = app.mongodb_conn[settings.MONGODB_DATABASE]
     
