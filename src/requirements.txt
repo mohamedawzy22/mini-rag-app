@@ -8,3 +8,4 @@ langchain-community==0.4.2
 pymupdf==1.28.0
 pypdf==6.14.2
 pymongo==4.17.0
+openai==2.53.0
