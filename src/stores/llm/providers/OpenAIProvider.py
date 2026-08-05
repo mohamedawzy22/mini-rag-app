@@ -22,7 +22,7 @@ class OpenAiProvider(LLMInterface):
         
         self.client = OpenAI(
             api_key = self.api_key,
-            api_url = self.api_url
+            base_url = self.api_url
         )
         
         self.logger = logging.getLogger(__name__)

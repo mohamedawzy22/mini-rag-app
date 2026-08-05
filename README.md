@@ -40,6 +40,21 @@ $ cp .env.example .env
 
 Set your environment variables in the `.env` file. Like `OPENAI_API_KEY` value.
 
+## Ollama
+
+Download the required models:
+
+```bash
+ollama pull qwen3:8b
+ollama pull bge-m3:latest
+```
+
+Run the Ollama server:
+
+```bash
+ollama serve
+```
+
 ## Run Docker Compose Services
 
 ```bash
