@@ -1,9 +1,9 @@
-from enum import Emum
+from enum import Enum
 
-class VectorDBEnum(Emum):
+class VectorDBEnum(Enum):
     
     QDRANT = "QDRANT"
     
-class DistanceMethodEnums(Emum):
+class DistanceMethodEnums(Enum):
     COSINE = "cosine"
     DOT = "dot"

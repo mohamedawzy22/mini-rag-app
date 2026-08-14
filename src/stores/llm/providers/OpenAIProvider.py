@@ -3,14 +3,15 @@ from ..LLMEnums import LLMEnums,OpenAIEnums
 from openai import OpenAI
 import logging
 
-class OpenAiProvider(LLMInterface):
-    def __init__(self,api_key:str,api_url:str = None,
+class OpenAIProvider(LLMInterface):
+    def __init__(self,api_key:str,api_url:str = None,timeout:float=120.0,
                  default_input_max_characters : int=1000,
                  default_generation_max_output_tokens :int = 1000,
                  default_generation_temperature : float = 0.1):
         
         self.api_key = api_key
         self.api_url = api_url
+        self.timeout = timeout
         self.default_input_max_characters = default_input_max_characters
         self.default_generation_max_output_tokens = default_generation_max_output_tokens
         self.default_generation_temperature = default_generation_temperature
@@ -22,9 +23,12 @@ class OpenAiProvider(LLMInterface):
         
         self.client = OpenAI(
             api_key = self.api_key,
-            base_url = self.api_url
+            base_url = self.api_url,
+            timeout=self.timeout
         )
         
+        
+        self.enums = OpenAIEnums
         self.logger = logging.getLogger(__name__)
         
         
@@ -32,44 +36,78 @@ class OpenAiProvider(LLMInterface):
             
         self.generation_model_id = model_id
         
-    def set_embedding_model(self,model_id:str,set_embedding_model:int):
-            
+    def set_embedding_model(self, model_id: str, embedding_size: int):
         self.embedding_model_id = model_id
-        self.embedding_size = set_embedding_model
+        self.embedding_size = embedding_size
         
     def process_text(self, text: str):
         return text[:self.default_input_max_characters].strip()
     
-    def generate_text(self,prompt: str, chat_history: list=[], max_output_tokens: int=None,
-                                temperature: float = None):
-        
+    def generate_text(
+        self,
+        prompt: str,
+        chat_history: list = None,
+        max_output_tokens: int = None,
+        temperature: float = None
+    ):
+
+        if chat_history is None:
+            chat_history = []
+
         if not self.client:
             self.logger.error("OpenAI client was not set")
             return None
-        
+
         if not self.generation_model_id:
             self.logger.error("Generation model for OpenAI was not set")
             return None
-        
-        max_output_tokens = max_output_tokens  if   max_output_tokens else self.default_generation_max_output_tokens
-        temperature = temperature if temperature else self.default_generation_temperature
-        
+
+        max_output_tokens = (
+            max_output_tokens
+            if max_output_tokens
+            else self.default_generation_max_output_tokens
+        )
+
+        temperature = (
+            temperature
+            if temperature is not None
+            else self.default_generation_temperature
+        )
+
         chat_history.append(
-            self.construct_prompt(prompt = prompt,role = OpenAIEnums.USER.value)
+            self.construct_prompt(
+                prompt=prompt,
+                role=OpenAIEnums.USER.value
+            )
         )
-        
-        response = self.client.chat.completions.create(
-            model = self.generation_model_id,
-            messages = chat_history,
-            max_tokens = max_output_tokens,
-            temperature = temperature
-        )
-        
-        if not response or not response.choices or len(response.choices) == 0 or not response.choices[0].message:
-            self.logger.error("Error while generating text with OpenAI")
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.generation_model_id,
+                messages=chat_history,
+                max_tokens=max_output_tokens,
+                temperature=temperature
+            )
+
+            print("GENERATION RESPONSE:", response)
+
+            if (
+                not response
+                or not response.choices
+                or len(response.choices) == 0
+                or not response.choices[0].message
+            ):
+                print("EMPTY GENERATION RESPONSE")
+                return None
+
+            print("GENERATED CONTENT:", response.choices[0].message.content)
+
+            return response.choices[0].message.content
+
+        except Exception as e:
+            print("GENERATION ERROR:", repr(e))
+            self.logger.exception("Generation failed")
             return None
-        
-        return response.choices[0].message["content"]
     
     def embed_text(self, text: str, document_type: str = None):
 
