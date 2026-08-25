@@ -172,7 +172,7 @@ async def answer_rag(request: Request, project_id: str, search_request: SearchRe
     
     answer, full_prompt, chat_history = nlp_controller.answer_rag_question(
         project=project,
-        quary = search_request.text,
+        query = search_request.text,
         limit = search_request.limit
     )
     
