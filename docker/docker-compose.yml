@@ -20,8 +20,23 @@ services:
     networks:
       - backend
 
+  pgvector:
+    image: pgvector/pgvector:0.8.6-pg18-trixie
+    container_name: pgvector
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresq
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - backend
+    restart: always
+
+
 networks:
   backend:
 
 volumes:
   mongo_data:
+  pgvector_data:
