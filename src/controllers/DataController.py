@@ -12,14 +12,25 @@ class DataController(BaseController):
         self.scale = 1048576 
         
     def valdation_upload_file(self, file:UploadFile):
-        
-        if file.content_type not in self.app_setting.FILE_ALLOWED_TYPES:
-            return False , ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
-        
+        allowed_extensions = [".txt", ".pdf"]
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            return False, ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
+
         if file.size > self.app_setting.FILE_MAX_SIZE * self.scale:
-            return False ,ResponseSignal.FILE_SIZE_EXCEEDED.value
+            return False, ResponseSignal.FILE_SIZE_EXCEEDED.value
+
+        return True, ResponseSignal.FILE_VALIDATED_SUCCESS.value
+        # if file.content_type not in self.app_setting.FILE_ALLOWED_TYPES:
+        #     print("content_type:", file.content_type)
+        #     print("allowed_types:", self.app_setting.FILE_ALLOWED_TYPES)
+                    
+        #     return False , ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
         
-        return True , ResponseSignal.FILE_VALIDATED_SUCCESS.value
+        # if file.size > self.app_setting.FILE_MAX_SIZE * self.scale:
+        #     return False ,ResponseSignal.FILE_SIZE_EXCEEDED.value
+        
+        # return True , ResponseSignal.FILE_VALIDATED_SUCCESS.value
     
     
     def cleaned_file_name(self,orig_file_name:str):
