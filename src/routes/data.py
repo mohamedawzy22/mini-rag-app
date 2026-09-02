@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter,Depends,UploadFile,status, Request
 from fastapi.responses import JSONResponse
 from helpers.config import get_setting,Setting
-from controllers import DataController,ProjectController,ProcessController
+from controllers import DataController,ProjectController,ProcessController,NLPController
 from .schemes.data import ProcessRequest
 from models import ResponseSignal
 from models.ProjectModel import ProjectModel
@@ -21,7 +21,7 @@ data_router = APIRouter(
     tags = ["api_v1","data"]
 )
 
-@data_router.get("/upload/{project_id}")
+@data_router.post("/upload/{project_id}")
 async def upload_data(request: Request,project_id : int,file : UploadFile
                       ,app_setting : Setting = Depends(get_setting)):
     
@@ -104,6 +104,13 @@ async def ProcessEndPoint(request: Request,project_id : int , ProcessRequest : P
         project_id=project_id
     )
     
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        template_parser=request.app.template_parser,
+    )
+    
     asset_model = await AssetModel.create_instance(
             db_client=request.app.db_client
         )
@@ -162,13 +169,18 @@ async def ProcessEndPoint(request: Request,project_id : int , ProcessRequest : P
                     )
 
     if do_reset == 1:
+        # delete associated vectors collection
+        collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+        _ = await request.app.vectordb_client.delete_collection(collection_name=collection_name)
+
+        # delete associated chunks
         _ = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
         
     for asset_id, file_id in project_files_ids.items():
     
-        file_content = process_controller.get_content_file(file_id = file_id)
+        file_content = process_controller.get_file_content(file_id = file_id)
         
         if file_content is None:
             logger.error(f"Error while processing file: {file_id}")
@@ -177,8 +189,8 @@ async def ProcessEndPoint(request: Request,project_id : int , ProcessRequest : P
         file_chunks = process_controller.process_file_content(
             file_content = file_content,
             file_id = file_id,
-            chunks = chunks_size,
-            overlap = overlap,
+            chunk_size = chunks_size,
+            overlap_size = overlap,
             
         )
         

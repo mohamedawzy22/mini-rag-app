@@ -1,10 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
+
 class ProcessRequest(BaseModel):
-    
-    file_id: str = None
-    chunks_size :Optional[int] = 100
-    do_reset : Optional[int] = 0
-    overlap : Optional[int] = 20
-    
+
+    file_id: Optional[str] = None
+
+    chunks_size: int = Field(
+        default=500,
+        gt=0
+    )
+
+    overlap: int = Field(
+        default=50,
+        ge=0
+    )
+
+    do_reset: bool = False
