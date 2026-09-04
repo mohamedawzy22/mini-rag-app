@@ -28,12 +28,8 @@ class PGVectorProvider(VectorDBInterface):
         
         
     async def connect(self):
-        async with self.db_client() as session:
-            async with session.begin():
-                await session.execute(sql_text(
-                    "CREATE EXTENSION IF NOT EXISTS vector"
-                ))
-                await session.commit()
+        self.logger.info("PGVector provider initialized")
+
             
     async def disconnect(self):
         pass
