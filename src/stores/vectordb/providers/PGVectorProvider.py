@@ -28,7 +28,21 @@ class PGVectorProvider(VectorDBInterface):
         
         
     async def connect(self):
-        self.logger.info("PGVector provider initialized")
+        try:
+            async with self.db_client() as session:
+                await session.execute(
+                    sql_text("SELECT 1")
+                )
+
+            self.logger.info(
+                "PGVector provider connected successfully"
+            )
+
+        except Exception:
+            self.logger.exception(
+                "Failed to connect to PGVector"
+            )
+            raise
 
             
     async def disconnect(self):
@@ -142,32 +156,52 @@ class PGVectorProvider(VectorDBInterface):
                 
                 return bool(results.scalar_one_or_none())
             
-    async def create_vector_index(self, collection_name: str,
-                                        index_type: str = PgVectorIndexTypeEnums.HNSW.value):
-        is_index_existed = await self.is_index_existed(collection_name=collection_name)
-        if is_index_existed:
+    async def create_vector_index(
+        self,
+        collection_name: str,
+        index_type: str = PgVectorIndexTypeEnums.HNSW.value
+        ):
+        # 1. Check if index already exists
+        if await self.is_index_existed(collection_name=collection_name):
             return False
-        
+
+        # 2. Check number of records
         async with self.db_client() as session:
             async with session.begin():
-                count_sql = sql_text(f'SELECT COUNT(*) FROM {collection_name}')
+                count_sql = sql_text(
+                    f'SELECT COUNT(*) FROM {collection_name}'
+                )
+
                 result = await session.execute(count_sql)
                 records_count = result.scalar_one()
 
-                if records_count < self.index_threshold:
-                    return False
-                
-                self.logger.info(f"START: Creating vector index for collection: {collection_name}")
-                
+        # 3. Do not create index before threshold
+        if records_count < self.index_threshold:
+            return False
+
+        self.logger.info(
+            f"START: Creating vector index for collection: {collection_name} "
+            f"(records={records_count})"
+        )
+
+        # 4. Create index
+        async with self.db_client() as session:
+            async with session.begin():
                 index_name = self.default_index_name(collection_name)
+
                 create_idx_sql = sql_text(
-                                            f'CREATE INDEX {index_name} ON {collection_name} '
-                                            f'USING {index_type} ({PgVectorTableSchemeEnums.VECTOR.value} {self.distance_method})'
-                                          )
+                    f'CREATE INDEX {index_name} ON {collection_name} '
+                    f'USING {index_type} '
+                    f'({PgVectorTableSchemeEnums.VECTOR.value} {self.distance_method})'
+                )
 
                 await session.execute(create_idx_sql)
 
-                self.logger.info(f"END: Created vector index for collection: {collection_name}")
+        self.logger.info(
+            f"END: Created vector index for collection: {collection_name}"
+        )
+
+        return True
 
     async def reset_vector_index(self, collection_name: str, 
                                        index_type: str = PgVectorIndexTypeEnums.HNSW.value) -> bool:

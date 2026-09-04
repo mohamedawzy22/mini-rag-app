@@ -24,3 +24,4 @@ class PgVectorDistanceMethodEnums(Enum):
 class PgVectorIndexTypeEnums(Enum):
     HNSW = "hnsw"
     IVFFLAT = "ivfflat"
+    EXACT = "exact"
