@@ -35,7 +35,7 @@ async def upload_data(request: Request,project_id : int,file : UploadFile
     
     data_controlle = DataController()
     
-    is_valid, result = data_controlle.valdation_upload_file(file=file)
+    is_valid, result = data_controlle.validate_uploaded_file(file=file)
     
     if not is_valid:
         return JSONResponse(
